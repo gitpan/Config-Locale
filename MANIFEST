@@ -1,0 +1,13 @@
+Changes
+LICENSE
+MANIFEST
+META.yml
+Makefile.PL
+README
+lib/Config/Locale.pm
+t/00-compile.t
+t/basic.t
+t/config/default.pl
+t/config/foo.all.bar.pl
+t/release-pod-coverage.t
+t/release-pod-syntax.t
