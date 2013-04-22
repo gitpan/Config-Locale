@@ -9,5 +9,6 @@ t/00-compile.t
 t/basic.t
 t/config/default.pl
 t/config/foo.all.bar.pl
+t/permute.t
 t/release-pod-coverage.t
 t/release-pod-syntax.t

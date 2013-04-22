@@ -1,6 +1,6 @@
 package Config::Locale;
 {
-  $Config::Locale::VERSION = '0.01';
+  $Config::Locale::VERSION = '0.02';
 }
 use Moose;
 use namespace::autoclean;
@@ -14,8 +14,8 @@ Config::Locale - Load and merge locale-specific configuration files.
     use Config::Locale;
     
     my $locale = Config::Locale->new(
-        identity => ['db', '1', 'qa'],
-        directory => '/path/to/configs/',
+        identity => \@values,
+        directory => $config_dir,
     );
     
     my $config = $locale->config();
@@ -30,31 +30,31 @@ So, given this setup:
 
     Config::Locale->new(
         identity => ['db', '1', 'qa'],
-        suffix   => '.yml',
     );
 
 The following configuration files will be looked for (listed from least specific to most):
 
-    default.yml
-    all.all.qa.yml
-    all.1.all.yml
-    all.1.qa.yml
-    db.all.all.yml
-    db.all.qa.yml
-    db.1.all.yml
-    db.1.qa.yml
+    default
+    all.all.qa
+    all.1.all
+    all.1.qa
+    db.all.all
+    db.all.qa
+    db.1.all
+    db.1.qa
 
 For each file found the contents will be parsed and then merged together to produce the
 final configuration hash.  The hashes will be merged so that the most specific configuration
 file will take precedence over the least specific files.  So, in the example above,
-"db.1.qa.yml" values will overwrite values from "default.yml".
+"db.1.qa" values will overwrite values from "default".
 
 =cut
 
+use Moose::Util::TypeConstraints;
 use Config::Any;
 use MooseX::Types::Path::Class;
-use Hash::Merge qw( merge );
-use Algorithm::Loops qw( NestedLoops );
+use Hash::Merge;
+use Algorithm::Loops qw( NestedLoops NextPermute );
 
 =head1 ARGUMENTS
 
@@ -95,6 +95,9 @@ sub _build_directory {
 The wildcard string to use when constructing the configuration filenames.
 Defaults to "all".  This may be explicitly set to undef wich will cause
 the wildcard string to not be added to the filenames at all.
+
+Note that this argument is completely ignored if you are using the C<PERMUTE>
+algorithm.
 
 =cut
 
@@ -159,9 +162,10 @@ sub _build_prefix {
 =head2 suffix
 
 An optional suffix that will be apended to the configuration filenames.
-Typically this will need to be used to specify the filename extension for
-the particular configuration format you are using, such as ".ini", ".yml",
-etc.
+While it may seem like the right place, you probably should not be using
+this to specify the extension of your configuration files.  L<Config::Any>
+automatically tries many various forms of extensions without the need
+to explicitly declare the extension that you are using.
 
 =cut
 
@@ -172,6 +176,47 @@ has suffix => (
 );
 sub _build_suffix {
     return '';
+}
+
+=head2 algorithm
+
+Which algorithm used to determine, based on the identity, what configuration
+files to consider for inclusion.
+
+The default, C<NESTED>, keeps the order of the identity.  This is most useful
+for identities that are derived from the name of a resource as resource names
+(such as hostnames of machines) typically have a defined structure.
+
+The C<PERMUTE> algorithm will shift the identity values around in all possible
+permutations.  This is most useful when the identity contains attributes of a
+resource.
+
+=cut
+
+enum 'Config::Locale::Algorithm', ['NESTED', 'PERMUTE'];
+
+has algorithm => (
+    is         => 'ro',
+    isa        => 'Config::Locale::Algorithm',
+    lazy_build => 1,
+);
+sub _build_algorithm {
+    return 'NESTED';
+}
+
+=head2 merge_behavior
+
+Specify a L<Hash::Merge> merge behavior.  The default is C<LEFT_PRECEDENT>.
+
+=cut
+
+has merge_behavior => (
+    is         => 'ro',
+    isa        => 'Str',
+    lazy_build => 1,
+);
+sub _build_merge_behavior {
+    return 'LEFT_PRECEDENT';
 }
 
 =head1 ATTRIBUTES
@@ -191,9 +236,11 @@ has config => (
 sub _build_config {
     my ($self) = @_;
 
+    my $merge = Hash::Merge->new( $self->merge_behavior() );
+
     my $config = {};
     foreach my $this_config (@{ $self->configs() }) {
-        $config = merge( $this_config, $config );
+        $config = $merge->merge( $this_config, $config );
     }
 
     return $config;
@@ -272,8 +319,8 @@ sub _build_stems {
 
 =head2 combinations
 
-Holds an array of arrays containing all possible premutations of the
-identity.
+Holds an array of arrays containing all possible permutations of the
+identity, per the specified L</algorithm>.
 
 =cut
 
@@ -291,12 +338,35 @@ sub _build_combinations {
         @{ $self->identity() }
     ];
 
-    return [
+    my $combos = [
         NestedLoops(
             $options,
             sub { [ @_ ] },
         )
     ];
+
+    if ($self->algorithm() eq 'PERMUTE') {
+        $combos = [
+            # Smaller arrays should be sorted before larger ones.
+            sort { @$a <=> @$b }
+            map {[
+                sort # Must sort before calling NextPermute.
+                grep { defined $_ } # The undefs would cause diplicate permutations.
+                @$_
+            ]}
+            @$combos
+        ];
+
+        my @pcombos;
+        foreach my $combo (sort { @$a <=> @$b } @$combos) {
+            do { push @pcombos, [ @$combo ] }
+            while (NextPermute( @$combo ));
+        }
+
+        $combos = \@pcombos;
+    }
+
+    return $combos;
 }
 
 __PACKAGE__->meta->make_immutable;

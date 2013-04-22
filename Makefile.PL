@@ -29,7 +29,7 @@ my %WriteMakefileArgs = (
     "MooseX::Types::Path::Class" => "0.01",
     "namespace::autoclean" => "0.12"
   },
-  "VERSION" => "0.01",
+  "VERSION" => "0.02",
   "test" => {
     "TESTS" => "t/*.t"
   }
