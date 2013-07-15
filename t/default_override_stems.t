@@ -30,11 +30,11 @@ foreach my $type (qw( default override )) {
             ( defined($stem) ? ($type . '_stem' => $stem) : () ),
         );
 
-        my $actual = ($type eq 'default') ? shift(@{$config->stems()}) : pop(@{$config->stems()});
+        my $actual = ($type eq 'default') ? $config->default_stem() : $config->override_stem();
 
         is(
             $actual . '',
-            $expected . '',
+            file($expected) . '',
             $type . ' stem resolved to ' . $expected,
         );
     }
