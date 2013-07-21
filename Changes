@@ -1,5 +1,9 @@
 Revision history for Perl extension Config::Locale.
 
+0.05      2013-07-21
+ - Don't use Moose since this module may often be used form CLI scripts where
+   Moose's slow startup can be annoying.
+
 0.04      2013-07-14
  - Fix tests for Windows.
  - Add require_defaults argument.

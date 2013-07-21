@@ -15,12 +15,13 @@ meta-spec:
 name: Config-Locale
 requires:
   Algorithm::Loops: 1.031
+  Carp: 0
   Config::Any: 0.04
   Hash::Merge: 0.12
-  Moose: 1.23
-  MooseX::Types::Path::Class: 0.01
-  namespace::autoclean: 0.12
+  List::MoreUtils: 0
+  Path::Class: 0
+  Scalar::Util: 0
 resources:
   bugtracker: https://github.com/bluefeet/Config-Locale/issues
   repository: git://github.com/bluefeet/Config-Locale.git
-version: 0.04
+version: 0.05

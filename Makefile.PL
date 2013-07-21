@@ -23,13 +23,14 @@ my %WriteMakefileArgs = (
   "NAME" => "Config::Locale",
   "PREREQ_PM" => {
     "Algorithm::Loops" => "1.031",
+    "Carp" => 0,
     "Config::Any" => "0.04",
     "Hash::Merge" => "0.12",
-    "Moose" => "1.23",
-    "MooseX::Types::Path::Class" => "0.01",
-    "namespace::autoclean" => "0.12"
+    "List::MoreUtils" => 0,
+    "Path::Class" => 0,
+    "Scalar::Util" => 0
   },
-  "VERSION" => "0.04",
+  "VERSION" => "0.05",
   "test" => {
     "TESTS" => "t/*.t"
   }
